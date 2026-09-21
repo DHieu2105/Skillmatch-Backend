@@ -8,7 +8,7 @@ class RecruiterProfile(Base):
     __tablename__ = "recruiter_profiles"
 
     recruiter_id: Mapped[int] = mapped_column(primary_key=True)
-    user_id: Mapped[int] = mapped_column(ForeignKey("users.user_id"), nullable=False)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.user_id"),unique=True,nullable=False)
     full_name: Mapped[str] = mapped_column(String, nullable=False)
     phone: Mapped[str] = mapped_column(String, nullable=False)
     position: Mapped[str] = mapped_column(String, nullable=False)

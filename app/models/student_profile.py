@@ -8,7 +8,7 @@ class StudentProfile(Base):
     __tablename__ = "student_profiles"
 
     student_id: Mapped[int] = mapped_column(primary_key=True)
-    user_id: Mapped[int] = mapped_column(ForeignKey("users.user_id"), nullable=False)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.user_id"),unique=True,nullable=False)
     full_name: Mapped[str] = mapped_column(String, nullable=False)
     date_of_birth: Mapped[str] = mapped_column(String, nullable=False)
     gender: Mapped[str] = mapped_column(String, nullable=False)

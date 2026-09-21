@@ -1,9 +1,8 @@
 from datetime import datetime
 
 from fastapi import APIRouter, Depends, HTTPException
-from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session  
-from ..schemas.auth import RegisterRequest
+from ..schemas.auth import LoginRequest, RegisterRequest
 from ..models.user import User
 from ..core.database import get_db
 from ..core.security import (
@@ -45,11 +44,11 @@ def register_user(request: RegisterRequest, db: Session = Depends(get_db)):
 
 @router.post("/login")
 def login(
-    form_data: OAuth2PasswordRequestForm = Depends(),
+    request: LoginRequest,
     db: Session = Depends(get_db)
 ):
     user = db.query(User).filter(
-        User.email == form_data.username
+        User.email == request.email
     ).first()
 
     if not user:
@@ -59,7 +58,7 @@ def login(
         )
 
     if not verify_password(
-        form_data.password,
+        request.password,
         user.password_hash
     ):
         raise HTTPException(
