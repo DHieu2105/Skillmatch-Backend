@@ -9,3 +9,7 @@ class RegisterRequest(BaseModel):
     email: str
     password: str
     role: RegisterRole
+
+class LoginRequest(BaseModel):
+    email: str
+    password: str
