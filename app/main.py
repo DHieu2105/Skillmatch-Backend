@@ -6,6 +6,8 @@ from app.routes import skills
 from app.routes import cvs
 from app.routes import recruiters
 from app.routes import companies
+from app.routes import jobs
+from app.routes import jobskills
 
 app = FastAPI()
 
@@ -43,4 +45,16 @@ app.include_router(
     companies.router,
     prefix="/api/v1/companies",
     tags=["companies"]
+)
+
+app.include_router(
+    jobs.router,
+    prefix="/api/v1/jobs",
+    tags=["jobs"]
+)
+
+app.include_router(
+    jobskills.router,
+    prefix="/api/v1/jobs",
+    tags=["job skills"]
 )
