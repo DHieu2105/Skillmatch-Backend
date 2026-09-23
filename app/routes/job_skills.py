@@ -8,11 +8,11 @@ from ..models.job import Job
 from ..models.job_skill import JobSkill
 from ..models.skill import Skill
 from .jobs import require_company_access
-from ..schemas.jobskill import JobSkillCreate, JobSkillResponse, JobSkillUpdate
+from ..schemas.job_skill import JobSkillCreate, JobSkillResponse, JobSkillUpdate
 
 router = APIRouter()
 
-@router.get("/jobskills", response_model=list[JobSkillResponse])
+@router.get("/job_skills", response_model=list[JobSkillResponse])
 def get_job_skills(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
