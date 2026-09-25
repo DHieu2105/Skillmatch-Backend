@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session
 
 from app.models.recommendation import Recommendation
 from app.nlp.matcher import calculate_similarity
+from app.nlp.skill_matcher import calculate_final_score, get_skill_ids, match_skills
 from ..core.database import get_db
 from ..core.security import get_current_user
 from ..models.user import User
@@ -69,22 +70,46 @@ def generate_recommendations(
     jobs = db.query(Job).filter(Job.status == "OPEN").all()
 
     for job in jobs:
-        score = calculate_similarity(
+        tfidf_score = calculate_similarity(
             cv.parsed_text,
             job.description
         ) * 100
 
-        recommendation = db.query(Recommendation).filter(
+        student_skill_ids = get_skill_ids(
+            db,
+            student_id=student_profile.student_id
+        )
+
+        job_skill_ids = get_skill_ids(
+            db,
+            job_id=job.job_id
+        )
+
+        skill_result = match_skills(
+            student_skill_ids,
+            job_skill_ids
+        )
+        score = calculate_final_score(
+            tfidf_score,
+            skill_result["match_score"]
+        )
+        print({
+            "job_id": job.job_id,
+            "tfidf_score": tfidf_score,
+            "skill_match": skill_result
+        })
+
+        existing_recommendation = db.query(Recommendation).filter(
             Recommendation.student_id == student_profile.student_id,
             Recommendation.job_id == job.job_id
         ).first()
 
-        if recommendation:
-            recommendation.score = score
-            recommendation.reason = (
+        if existing_recommendation:
+            existing_recommendation.score = score
+            existing_recommendation.reason = (
                 "Based on CV and job description similarity"
             )
-            recommendation.matching_method = "TF_IDF"
+            existing_recommendation.matching_method = "TF_IDF"
         else:
             recommendation = Recommendation(
                 student_id=student_profile.student_id,
