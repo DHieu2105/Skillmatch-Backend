@@ -10,6 +10,8 @@ class RecommendationResponse(BaseModel):
     reason: str
     matching_method: str
     created_at: datetime
+    matched_skills: list[str]
+    missing_skills: list[str]
 
     class Config:
         from_attributes = True
