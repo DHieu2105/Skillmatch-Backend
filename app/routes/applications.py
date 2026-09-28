@@ -6,6 +6,7 @@ from ..core.database import get_db
 from ..core.security import get_current_user
 from ..models.user import User
 from ..models.application import Application
+from ..models.notification import Notification
 from ..models.student_profile import StudentProfile
 from ..models.job import Job
 from ..models.cv import CV
@@ -74,6 +75,31 @@ def create_application(
 
 	return application
 
+@router.get("/applications/{application_id}", response_model=ApplicationResponse)
+def get_application(
+    application_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    if current_user.role.upper() != "STUDENT":
+        raise HTTPException(status_code=403, detail="Student role required")
+
+    student_profile = db.query(StudentProfile).filter(
+        StudentProfile.user_id == current_user.user_id
+    ).first()
+
+    if not student_profile:
+        raise HTTPException(status_code=404, detail="Student profile not found")
+
+    application = db.query(Application).filter(
+        Application.application_id == application_id,
+        Application.student_id == student_profile.student_id
+    ).first()
+
+    if not application:
+        raise HTTPException(status_code=404, detail="Application not found")
+
+    return application
 
 @router.get("/jobs/{job_id}/applications", response_model=list[ApplicationResponse])
 def get_job_applications(
@@ -110,7 +136,7 @@ def get_job_applications(
 
 	return applications
 
-@router.patch("/{application_id}/status", response_model=ApplicationResponse)
+@router.patch("/applications/{application_id}/status", response_model=ApplicationResponse)
 def update_application_status(
     application_id: int,
     status_data: ApplicationStatusUpdate,
@@ -173,8 +199,31 @@ def update_application_status(
             detail="Invalid application status"
         )
 
-    application.status = status_data.status.upper()
+    new_status = status_data.status.upper()
+    previous_status = application.status.upper()
+    application.status = new_status
     application.updated_at = datetime.utcnow()
+
+    notification_messages = {
+        "ACCEPTED": "Your application has been accepted.",
+        "REJECTED": "Your application has been rejected.",
+    }
+
+    if new_status in notification_messages and previous_status != new_status:
+        student_profile = db.query(StudentProfile).filter(
+            StudentProfile.student_id == application.student_id
+        ).first()
+
+        if not student_profile:
+            raise HTTPException(status_code=404, detail="Student profile not found")
+
+        db.add(Notification(
+            user_id=student_profile.user_id,
+            title=f"Application {new_status.title()}",
+            message=notification_messages[new_status],
+            is_read=False,
+            created_at=datetime.utcnow(),
+        ))
 
     db.commit()
     db.refresh(application)

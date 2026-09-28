@@ -10,6 +10,7 @@ from app.routes import jobs
 from app.routes import job_skills
 from app.routes import applications
 from app.routes import recommendations
+from app.routes import notifications
 
 app = FastAPI()
 
@@ -71,4 +72,10 @@ app.include_router(
     recommendations.router,
     prefix="/api/v1",
     tags=["recommendations"]
+)
+
+app.include_router(
+    notifications.router,  
+    prefix="/api/v1",
+    tags=["notifications"]
 )
