@@ -6,6 +6,7 @@ from ..core.database import get_db
 from ..core.security import get_current_user
 from ..models.user import User
 from ..models.job import Job
+from ..models.application import Application
 from ..models.recruiter_profile import RecruiterProfile
 from ..schemas.job import JobResponse, JobCreate, JobStatus, JobUpdate
 
@@ -103,6 +104,12 @@ def delete_job(
         raise HTTPException(status_code=404, detail="Job not found")
 
     require_company_access(current_user, job.company_id, db)
+
+    if db.query(Application).filter(Application.job_id == job_id).first():
+        raise HTTPException(
+            status_code=409,
+            detail="Cannot delete a job with existing applications",
+        )
 
     db.delete(job)
     db.commit()

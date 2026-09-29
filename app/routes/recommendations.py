@@ -139,7 +139,6 @@ def generate_recommendations(
             cv.parsed_text,
             job.description
         ) * 100
-        tfidf_score = score
 
         job_skill_ids = get_skill_ids(
             db,

@@ -6,6 +6,7 @@ from ..core.security import get_current_user
 from ..models.user import User
 from ..models.student_profile import StudentProfile
 from ..models.cv import CV
+from ..models.application import Application
 from ..schemas.cv import CVCreate, CVDefaultUpdate, CVResponse, CVUpdate
 
 router = APIRouter()
@@ -123,6 +124,12 @@ def delete_student_cv(
     ).first()
     if not cv:
         raise HTTPException(status_code=404, detail="CV not found")
+
+    if db.query(Application).filter(Application.cv_id == cv_id).first():
+        raise HTTPException(
+            status_code=409,
+            detail="Cannot delete a CV used by an application",
+        )
 
     deleted_cv = CVResponse.model_validate(cv)
     replacement = None
