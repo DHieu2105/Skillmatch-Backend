@@ -142,11 +142,6 @@ def generate_recommendations(
             score,
             skill_result["match_score"]
         )
-        print({
-            "job_id": job.job_id,
-            "tfidf_score": tfidf_score,
-            "skill_match": skill_result
-        })
 
         existing_recommendation = db.query(Recommendation).filter(
             Recommendation.student_id == student_profile.student_id,
