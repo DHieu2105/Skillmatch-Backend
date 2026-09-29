@@ -22,6 +22,11 @@ from ..schemas.recommendation import RecommendationResponse
 router = APIRouter(prefix="/recommendations")
 
 
+def require_student(current_user: User):
+    if current_user.role.upper() != "STUDENT":
+        raise HTTPException(status_code=403, detail="Student role required")
+
+
 def _recommendation_response(
     recommendation: Recommendation,
     db: Session,
@@ -58,6 +63,8 @@ def get_my_recommendations(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
+    require_student(current_user)
+
     student_profile = db.query(StudentProfile).filter(
         StudentProfile.user_id == current_user.user_id
     ).first()
@@ -86,6 +93,8 @@ def generate_recommendations(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
+    require_student(current_user)
+
     student_profile = db.query(StudentProfile).filter(
         StudentProfile.user_id == current_user.user_id
     ).first()
@@ -183,6 +192,8 @@ def get_my_recommendation(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
+    require_student(current_user)
+
     student_profile = db.query(StudentProfile).filter(
         StudentProfile.user_id == current_user.user_id
     ).first()

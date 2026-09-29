@@ -28,6 +28,30 @@ def get_my_notifications(
     return notifications
 
 
+@router.patch("/read-all", response_model=list[NotificationResponse])
+def mark_all_notifications_as_read(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    if current_user.role.upper() != "STUDENT":
+        raise HTTPException(status_code=403, detail="Student role required")
+
+    notifications = db.query(Notification).filter(
+        Notification.user_id == current_user.user_id,
+        Notification.is_read.is_(False),
+    ).all()
+
+    for notification in notifications:
+        notification.is_read = True
+
+    db.commit()
+
+    for notification in notifications:
+        db.refresh(notification)
+
+    return notifications
+
+
 @router.patch("/{notification_id}/read", response_model=NotificationResponse)
 def mark_notification_as_read(
     notification_id: int,

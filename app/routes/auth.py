@@ -119,30 +119,30 @@ def change_password(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    if current_user.password_hash:
-        if not request.current_password:
-            raise HTTPException(
-                status_code=400,
-                detail="Current password is required",
-            )
-        if not verify_password(request.current_password, current_user.password_hash):
-            raise HTTPException(
-                status_code=400,
-                detail="Current password is incorrect"
-            )
+    if not current_user.password_hash:
+        raise HTTPException(
+            status_code=400,
+            detail="This account does not have a local password",
+        )
 
-        message = "Password changed successfully"
-    else:
-        message = "Password set successfully"
+    if not verify_password(request.current_password, current_user.password_hash):
+        raise HTTPException(
+            status_code=400,
+            detail="Current password is incorrect"
+        )
+
+    if verify_password(request.new_password, current_user.password_hash):
+        raise HTTPException(
+            status_code=400,
+            detail="New password must be different from current password",
+        )
 
     current_user.password_hash = hash_password(request.new_password)
-    if current_user.auth_provider == "google":
-        current_user.auth_provider = "local+google"
     current_user.update_at = datetime.utcnow()
     db.commit()
     db.refresh(current_user)
 
-    return {"message": message}
+    return {"message": "Password changed successfully"}
 
 
 @router.post("/forgot-password")

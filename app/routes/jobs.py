@@ -160,7 +160,11 @@ def update_job_status(
 
     require_company_access(current_user, job.company_id, db)
 
-    job.status = status
+    new_status = status.upper()
+    if new_status not in {"OPEN", "CLOSED"}:
+        raise HTTPException(status_code=400, detail="Invalid job status")
+
+    job.status = new_status
     job.update_at = datetime.utcnow()
 
     db.commit()
