@@ -28,7 +28,7 @@ def require_company_access(current_user: User, company_id: int, db: Session):
         raise HTTPException(status_code=403, detail="You do not have access to this company")
 
 
-@router.get("/jobs", response_model=list[JobResponse])
+@router.get("", response_model=list[JobResponse])
 def get_jobs(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
@@ -36,20 +36,7 @@ def get_jobs(
     jobs = db.query(Job).all()
     return jobs
 
-@router.get("/jobs/{job_id}", response_model=JobResponse)
-def get_job(    
-    job_id: int,
-    current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
-):
-    job = db.query(Job).filter(Job.job_id == job_id).first()
-
-    if not job:
-        raise HTTPException(status_code=404, detail="Job not found")
-
-    return job
-
-@router.post("/jobs", response_model=JobResponse)
+@router.post("", response_model=JobResponse)
 def create_job( 
     job_data: JobCreate,
     current_user: User = Depends(get_current_user),
@@ -75,7 +62,7 @@ def create_job(
     db.refresh(new_job)
     return new_job
 
-@router.put("/jobs/{job_id}", response_model=JobResponse)
+@router.put("/{job_id}", response_model=JobResponse)
 def update_job(
     job_id: int,
     job_data: JobUpdate,
@@ -104,7 +91,7 @@ def update_job(
 
     return job
 
-@router.delete("/jobs/{job_id}", response_model=dict)
+@router.delete("/{job_id}", response_model=dict)
 def delete_job(
     job_id: int,
     current_user: User = Depends(get_current_user),
@@ -122,7 +109,7 @@ def delete_job(
 
     return {"message": "Job deleted successfully"}
 
-@router.get("/jobs/search", response_model=list[JobResponse])
+@router.get("/search", response_model=list[JobResponse])
 def search_jobs(   
     title: str = None,
     location: str = None,
@@ -145,7 +132,21 @@ def search_jobs(
     jobs = query.all()
     return jobs
 
-@router.patch("/jobs/{job_id}/status", response_model=JobResponse)
+@router.get("/{job_id}", response_model=JobResponse)
+def get_job(
+    job_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    job = db.query(Job).filter(Job.job_id == job_id).first()
+
+    if not job:
+        raise HTTPException(status_code=404, detail="Job not found")
+
+    return job
+
+
+@router.patch("/{job_id}/status", response_model=JobResponse)
 def update_job_status(
     job_id: int,
     status: str,

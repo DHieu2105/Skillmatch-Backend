@@ -39,11 +39,11 @@ class GoogleLoginRequest(BaseModel):
     role: RegisterRole | None = None
 
 class ChangePasswordRequest(BaseModel):
-    current_password: str
+    current_password: str | None = None
     new_password: str = Field(..., min_length=8)
 
     @model_validator(mode="after")
     def validate_new_password(self):
-        if self.current_password == self.new_password:
+        if self.current_password and self.current_password == self.new_password:
             raise ValueError("New password must be different from current password")
         return self

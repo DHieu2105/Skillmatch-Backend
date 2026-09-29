@@ -108,6 +108,10 @@ def generate_recommendations(
         )
 
     jobs = db.query(Job).filter(Job.status == "OPEN").all()
+    student_skill_ids = get_skill_ids(
+        db,
+        student_id=student_profile.student_id,
+    )
 
     for job in jobs:
         score = calculate_similarity(
@@ -115,11 +119,6 @@ def generate_recommendations(
             job.description
         ) * 100
         tfidf_score = score
-
-        student_skill_ids = get_skill_ids(
-            db,
-            student_id=student_profile.student_id
-        )
 
         job_skill_ids = get_skill_ids(
             db,

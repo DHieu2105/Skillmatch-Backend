@@ -22,6 +22,9 @@ def create_application(
 	current_user: User = Depends(get_current_user),
 	db: Session = Depends(get_db),
 ):
+	if current_user.role.upper() != "STUDENT":
+		raise HTTPException(status_code=403, detail="Student role required")
+
 	student_profile = db.query(StudentProfile).filter(
 		StudentProfile.user_id == current_user.user_id
 	).first()

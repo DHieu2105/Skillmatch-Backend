@@ -108,6 +108,8 @@ def get_me(current_user: User = Depends(get_current_user)):
         "email": current_user.email,
         "role": current_user.role,
         "status": current_user.status,
+        "auth_provider": current_user.auth_provider,
+        "has_password": current_user.password_hash is not None,
     }
 
 
@@ -117,22 +119,30 @@ def change_password(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    # Verify current password
-    if not verify_password(request.current_password, current_user.password_hash):
-        raise HTTPException(
-            status_code=400,
-            detail="Current password is incorrect"
-        )
+    if current_user.password_hash:
+        if not request.current_password:
+            raise HTTPException(
+                status_code=400,
+                detail="Current password is required",
+            )
+        if not verify_password(request.current_password, current_user.password_hash):
+            raise HTTPException(
+                status_code=400,
+                detail="Current password is incorrect"
+            )
 
-    # Hash new password
-    new_hashed_password = hash_password(request.new_password)
+        message = "Password changed successfully"
+    else:
+        message = "Password set successfully"
 
-    # Update password in the database
-    current_user.password_hash = new_hashed_password
+    current_user.password_hash = hash_password(request.new_password)
+    if current_user.auth_provider == "google":
+        current_user.auth_provider = "local+google"
+    current_user.update_at = datetime.utcnow()
     db.commit()
     db.refresh(current_user)
 
-    return {"message": "Password changed successfully"}
+    return {"message": message}
 
 
 @router.post("/forgot-password")

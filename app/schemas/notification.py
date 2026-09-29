@@ -12,9 +12,3 @@ class NotificationResponse(BaseModel):
 
     class Config:
         from_attributes = True
-
-
-class NotificationCreate(BaseModel):
-    user_id: int
-    title: str
-    message: str
