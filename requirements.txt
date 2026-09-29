@@ -4,3 +4,5 @@ sqlalchemy
 psycopg2-binary
 python-dotenv
 python-multipart
+google-auth
+requests
