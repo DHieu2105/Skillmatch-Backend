@@ -15,6 +15,10 @@ class CVUpdate(BaseModel):
     is_default: bool
 
 
+class CVDefaultUpdate(BaseModel):
+    is_default: bool = True
+
+
 class CVResponse(BaseModel):
     cv_id: int
     student_id: int

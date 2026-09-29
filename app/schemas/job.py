@@ -1,5 +1,11 @@
 from pydantic import BaseModel, Field
 from datetime import date, datetime
+from enum import Enum
+
+
+class JobStatus(str, Enum):
+    OPEN = "OPEN"
+    CLOSED = "CLOSED"
 
 class JobResponse(BaseModel):
     job_id: int
@@ -11,7 +17,7 @@ class JobResponse(BaseModel):
     job_type: str
     experience_level: str
     deadline: date
-    status: str
+    status: JobStatus
     created_at: datetime
     update_at: datetime
 
@@ -27,7 +33,7 @@ class JobCreate(BaseModel):
     job_type: str
     experience_level: str
     deadline: date
-    status: str
+    status: JobStatus
 
 class JobUpdate(BaseModel):
     title: str
@@ -37,4 +43,4 @@ class JobUpdate(BaseModel):
     job_type: str
     experience_level: str
     deadline: date
-    status: str
+    status: JobStatus

@@ -1,16 +1,16 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, EmailStr
 
 class CompanyCreate(BaseModel):
     company_name: str
     description: str
-    email: str
+    email: EmailStr
     phone: str
     website: str
 
 class CompanyUpdate(BaseModel):
     company_name: str
     description: str
-    email: str
+    email: EmailStr
     phone: str
     website: str
 

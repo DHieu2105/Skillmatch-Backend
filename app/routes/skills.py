@@ -12,11 +12,18 @@ from ..schemas.skill import SkillCreate, SkillResponse
 router = APIRouter()
 
 
+def require_student(current_user: User):
+    if current_user.role.upper() != "STUDENT":
+        raise HTTPException(status_code=403, detail="Student role required")
+
+
 @router.get("/skills", response_model=list[SkillResponse])
 def get_student_skills(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
+    require_student(current_user)
+
     student_profile = db.query(StudentProfile).filter(
         StudentProfile.user_id == current_user.user_id
     ).first()
@@ -52,6 +59,8 @@ def add_student_skill(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
+    require_student(current_user)
+
     student_profile = db.query(StudentProfile).filter(
         StudentProfile.user_id == current_user.user_id
     ).first()
@@ -90,6 +99,8 @@ def delete_student_skill(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
+    require_student(current_user)
+
     student_profile = db.query(StudentProfile).filter(
         StudentProfile.user_id == current_user.user_id
     ).first()
@@ -131,6 +142,8 @@ def update_student_skill(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
+    require_student(current_user)
+
     student_profile = db.query(StudentProfile).filter(
         StudentProfile.user_id == current_user.user_id
     ).first()

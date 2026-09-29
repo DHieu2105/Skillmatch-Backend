@@ -10,11 +10,18 @@ from ..schemas.student import StudentProfileResponse, StudentProfileUpdate
 
 router = APIRouter()
 
+
+def require_student(current_user: User):
+    if current_user.role.upper() != "STUDENT":
+        raise HTTPException(status_code=403, detail="Student role required")
+
 @router.get("/profile", response_model=StudentProfileResponse)
 def get_student_profile(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
+    require_student(current_user)
+
     student_profile = db.query(StudentProfile).filter(
         StudentProfile.user_id == current_user.user_id
     ).first()
@@ -30,6 +37,8 @@ def update_student_profile(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
+    require_student(current_user)
+
     student_profile = db.query(StudentProfile).filter(
         StudentProfile.user_id == current_user.user_id
     ).first()

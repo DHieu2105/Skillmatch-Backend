@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session
 from ..core.database import get_db
 from ..core.security import get_current_user
 from ..models.user import User
+from ..models.company import Company
 from ..models.recruiter_profile import RecruiterProfile
 from ..schemas.recruiter import RecruiterProfileResponse, RecruiterProfileUpdate
 
@@ -38,9 +39,21 @@ def update_recruiter_profile(
 ):
     require_recruiter(current_user)
 
+    company = db.query(Company).filter(
+        Company.company_id == profile_data.company_id
+    ).first()
+    if not company:
+        raise HTTPException(status_code=404, detail="Company not found")
+
     recruiter_profile = db.query(RecruiterProfile).filter(
         RecruiterProfile.user_id == current_user.user_id
     ).first()
+
+    if not recruiter_profile and company.owner_user_id != current_user.user_id:
+        raise HTTPException(
+            status_code=403,
+            detail="You can only join a company you own",
+        )
 
     if not recruiter_profile:
         recruiter_profile = RecruiterProfile(
@@ -54,6 +67,11 @@ def update_recruiter_profile(
         )
         db.add(recruiter_profile)
     else:
+        if recruiter_profile.company_id != profile_data.company_id:
+            raise HTTPException(
+                status_code=403,
+                detail="Recruiter cannot switch companies",
+            )
         recruiter_profile.full_name = profile_data.full_name
         recruiter_profile.phone = profile_data.phone
         recruiter_profile.position = profile_data.position

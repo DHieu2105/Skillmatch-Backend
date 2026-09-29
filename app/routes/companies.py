@@ -7,6 +7,7 @@ from ..core.database import get_db
 from ..core.security import get_current_user
 from ..models.company import Company
 from ..models.user import User
+from ..models.recruiter_profile import RecruiterProfile
 from ..schemas.company import CompanyCreate, CompanyResponse
 
 router = APIRouter()
@@ -15,6 +16,19 @@ router = APIRouter()
 def require_recruiter(current_user: User):
     if current_user.role.upper() != "RECRUITER":
         raise HTTPException(status_code=403, detail="Recruiter role required")
+
+
+def require_company_access(current_user: User, company_id: int, db: Session):
+    require_recruiter(current_user)
+    recruiter_profile = db.query(RecruiterProfile).filter(
+        RecruiterProfile.user_id == current_user.user_id,
+        RecruiterProfile.company_id == company_id,
+    ).first()
+    if not recruiter_profile:
+        raise HTTPException(
+            status_code=403,
+            detail="You do not have access to this company",
+        )
 
 
 @router.post("", response_model=CompanyResponse)
@@ -26,6 +40,7 @@ def create_company(
     require_recruiter(current_user)
 
     company = Company(
+        owner_user_id=current_user.user_id,
         company_name=company_data.company_name,
         description=company_data.description,
         email=company_data.email,
@@ -60,7 +75,7 @@ def update_company(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    require_recruiter(current_user)
+    require_company_access(current_user, company_id, db)
 
     company = db.query(Company).filter(Company.company_id == company_id).first()
     if not company:
@@ -77,18 +92,3 @@ def update_company(
     db.refresh(company)
     return company
 
-@router.delete("/{company_id}", response_model=CompanyResponse)
-def delete_company(
-    company_id: int,
-    current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db),
-):
-    require_recruiter(current_user)
-
-    company = db.query(Company).filter(Company.company_id == company_id).first()
-    if not company:
-        raise HTTPException(status_code=404, detail="Company not found")
-
-    db.delete(company)
-    db.commit()
-    return company

@@ -7,7 +7,7 @@ from ..core.security import get_current_user
 from ..models.user import User
 from ..models.job import Job
 from ..models.recruiter_profile import RecruiterProfile
-from ..schemas.job import JobResponse, JobCreate, JobUpdate
+from ..schemas.job import JobResponse, JobCreate, JobStatus, JobUpdate
 
 router = APIRouter()
 
@@ -53,7 +53,7 @@ def create_job(
         job_type=job_data.job_type,
         experience_level=job_data.experience_level,
         deadline=job_data.deadline,
-        status=job_data.status,
+        status=job_data.status.value,
         created_at=datetime.utcnow(),
         update_at=datetime.utcnow()
     )
@@ -83,7 +83,7 @@ def update_job(
     job.job_type = job_data.job_type
     job.experience_level = job_data.experience_level
     job.deadline = job_data.deadline
-    job.status = job_data.status
+    job.status = job_data.status.value
     job.update_at = datetime.utcnow()
 
     db.commit()
@@ -149,7 +149,7 @@ def get_job(
 @router.patch("/{job_id}/status", response_model=JobResponse)
 def update_job_status(
     job_id: int,
-    status: str,
+    status: JobStatus,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
@@ -160,11 +160,7 @@ def update_job_status(
 
     require_company_access(current_user, job.company_id, db)
 
-    new_status = status.upper()
-    if new_status not in {"OPEN", "CLOSED"}:
-        raise HTTPException(status_code=400, detail="Invalid job status")
-
-    job.status = new_status
+    job.status = status.value
     job.update_at = datetime.utcnow()
 
     db.commit()

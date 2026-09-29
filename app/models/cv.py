@@ -1,11 +1,20 @@
 # app/models/cv.py
 from datetime import datetime
-from sqlalchemy import String, Integer, DateTime, ForeignKey
+from sqlalchemy import Index, String, Integer, DateTime, ForeignKey, text
 from sqlalchemy.orm import Mapped, mapped_column
 from app.core.database import Base
 
 class CV(Base):
     __tablename__ = "cvs"
+    __table_args__ = (
+        Index(
+            "uq_cv_default_per_student",
+            "student_id",
+            unique=True,
+            postgresql_where=text("is_default = true"),
+            sqlite_where=text("is_default = 1"),
+        ),
+    )
 
     cv_id: Mapped[int] = mapped_column(primary_key=True)
     student_id: Mapped[int] = mapped_column(ForeignKey("student_profiles.student_id"), nullable=False)

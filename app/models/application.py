@@ -1,11 +1,18 @@
 # app/models/application.py
 from datetime import datetime
-from sqlalchemy import String, Integer, DateTime, ForeignKey
+from sqlalchemy import String, Integer, DateTime, ForeignKey, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column
 from app.core.database import Base
 
 class Application(Base):
     __tablename__ = "applications"
+    __table_args__ = (
+        UniqueConstraint(
+            "student_id",
+            "job_id",
+            name="uq_application_student_job",
+        ),
+    )
 
     application_id: Mapped[int] = mapped_column(primary_key=True)
     student_id: Mapped[int] = mapped_column(ForeignKey("student_profiles.student_id"), nullable=False)

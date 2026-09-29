@@ -2,7 +2,7 @@
 
 from datetime import datetime
 
-from sqlalchemy import String, Integer, DateTime, ForeignKey, Float
+from sqlalchemy import String, Integer, DateTime, ForeignKey, Float, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.core.database import Base
@@ -10,6 +10,13 @@ from app.core.database import Base
 
 class Recommendation(Base):
     __tablename__ = "recommendations"
+    __table_args__ = (
+        UniqueConstraint(
+            "student_id",
+            "job_id",
+            name="uq_recommendation_student_job",
+        ),
+    )
 
     recommendation_id: Mapped[int] = mapped_column(primary_key=True)
 

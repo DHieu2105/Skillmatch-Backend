@@ -117,6 +117,18 @@ def generate_recommendations(
         )
 
     jobs = db.query(Job).filter(Job.status == "OPEN").all()
+    open_job_ids = {job.job_id for job in jobs}
+    stale_recommendations = db.query(Recommendation).filter(
+        Recommendation.student_id == student_profile.student_id,
+    )
+    if open_job_ids:
+        stale_recommendations = stale_recommendations.filter(
+            ~Recommendation.job_id.in_(open_job_ids)
+        )
+
+    for recommendation in stale_recommendations.all():
+        db.delete(recommendation)
+
     student_skill_ids = get_skill_ids(
         db,
         student_id=student_profile.student_id,

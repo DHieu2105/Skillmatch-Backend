@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field, model_validator
+from pydantic import BaseModel, EmailStr, Field, model_validator
 from enum import Enum
 from pydantic import field_validator
 
@@ -10,8 +10,8 @@ class RegisterRequest(BaseModel):
     role: RegisterRole = Field(
         ..., description="Required account role: STUDENT or RECRUITER"
     )
-    email: str
-    password: str
+    email: EmailStr
+    password: str = Field(..., min_length=8)
 
     @field_validator("role", mode="before")
     @classmethod
@@ -21,12 +21,12 @@ class RegisterRequest(BaseModel):
         return value
 
 class LoginRequest(BaseModel):
-    email: str
+    email: EmailStr
     password: str
 
 
 class ForgotPasswordRequest(BaseModel):
-    email: str
+    email: EmailStr
 
 
 class ResetPasswordRequest(BaseModel):

@@ -9,8 +9,8 @@ class StudentProfileResponse(BaseModel):
     gender: str
     university: str
     major: str
-    gpa: float
-    graduation_year: int
+    gpa: float = Field(..., ge=0, le=4)
+    graduation_year: int = Field(..., ge=1900, le=2100)
     career_goal: str
 
     class Config:
@@ -23,6 +23,6 @@ class StudentProfileUpdate(BaseModel):
     gender: str
     university: str
     major: str
-    gpa: float
-    graduation_year: int
+    gpa: float = Field(..., ge=0, le=4)
+    graduation_year: int = Field(..., ge=1900, le=2100)
     career_goal: str
