@@ -97,6 +97,9 @@ SUPABASE_STORAGE_BUCKET=cvs
 # Optional when the bucket uses a custom public URL
 SUPABASE_STORAGE_PUBLIC_URL=https://your-project.supabase.co/storage/v1/object/public/cvs
 
+# Frontend origins, comma-separated
+CORS_ORIGINS=http://localhost:3000
+
 # Optional: password-reset email
 FRONTEND_RESET_PASSWORD_URL=http://localhost:3000/reset-password
 SMTP_HOST=smtp.example.com
@@ -169,7 +172,7 @@ Swagger UI là tài liệu chi tiết và luôn phản ánh request/response m�
 | Password reset | `POST /auth/forgot-password`, `POST /auth/reset-password` |
 | Profiles | `GET, PUT /students/profile`, `GET, PUT /recruiters/profile` |
 | Companies | `POST /companies`, `GET, PUT, DELETE /companies/{company_id}` |
-| CV | `GET, POST, PUT, DELETE /cvs`, `PATCH /cvs/{cv_id}/default` |
+| CV | `GET, POST, DELETE /cvs`, `PATCH /cvs/{cv_id}/default` |
 | Student skills | `GET, POST /skills/skills`, `PUT, DELETE /skills/skills/{skill_id}` |
 | Jobs | `GET, POST /jobs`, `GET, PUT, DELETE /jobs/{job_id}`, `GET /jobs/search`, `PATCH /jobs/{job_id}/status` |
 | Job skills | `GET /jobs/job_skills`, `GET, POST /jobs/{job_id}/skills`, `PUT, DELETE /jobs/{job_id}/skills/{skill_id}` |
@@ -208,6 +211,9 @@ Response:
 3. `POST /api/v1/recommendations/generate` lấy những job có trạng thái `OPEN`.
 4. Điểm TF-IDF từ CV/job được kết hợp với skill matching theo tỷ trọng 40/60.
 5. API trả về điểm, lý do, `matched_skills` và `missing_skills`.
+
+CV dùng public Supabase Storage URL cho đồ án/demo để recruiter có thể mở trực tiếp.
+Production nên chuyển bucket sang private và trả signed URL thay vì public URL.
 
 ## Kiểm tra
 

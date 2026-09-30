@@ -1,20 +1,6 @@
 from pydantic import BaseModel
 
 
-class CVCreate(BaseModel):
-    file_name: str
-    file_url: str
-    parsed_text: str
-    is_default: bool = False
-
-
-class CVUpdate(BaseModel):
-    file_name: str
-    file_url: str
-    parsed_text: str
-    is_default: bool
-
-
 class CVDefaultUpdate(BaseModel):
     is_default: bool = True
 

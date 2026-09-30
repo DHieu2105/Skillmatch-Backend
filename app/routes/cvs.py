@@ -10,10 +10,12 @@ from ..models.student_profile import StudentProfile
 from ..models.cv import CV
 from ..models.application import Application
 from ..nlp.cv_parser import extract_pdf_text
-from ..schemas.cv import CVDefaultUpdate, CVResponse, CVUpdate
+from ..schemas.cv import CVDefaultUpdate, CVResponse
 from ..services.storage import (
+    StorageDeleteError,
     StorageConfigurationError,
     StorageUploadError,
+    delete_cv_pdf,
     upload_cv_pdf,
 )
 
@@ -112,45 +114,6 @@ def create_student_cv(
     return new_cv
 
 
-@router.put("/{cv_id}", response_model=CVResponse)
-def update_student_cv(
-    cv_id: int,
-    cv_data: CVUpdate,
-    current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db),
-):
-    student_profile = get_student_profile(current_user, db)
-    cv = db.query(CV).filter(
-        CV.cv_id == cv_id,
-        CV.student_id == student_profile.student_id,
-    ).first()
-    if not cv:
-        raise HTTPException(status_code=404, detail="CV not found")
-
-    if cv_data.is_default:
-        clear_default_cvs(db, student_profile.student_id, cv.cv_id)
-    elif cv.is_default:
-        replacement = db.query(CV).filter(
-            CV.student_id == student_profile.student_id,
-            CV.cv_id != cv.cv_id,
-        ).first()
-        if replacement:
-            replacement.is_default = True
-        else:
-            raise HTTPException(
-                status_code=400,
-                detail="A student must have a default CV",
-            )
-
-    cv.file_name = cv_data.file_name
-    cv.file_url = cv_data.file_url
-    cv.parsed_text = cv_data.parsed_text
-    cv.is_default = cv_data.is_default
-    db.commit()
-    db.refresh(cv)
-    return cv
-
-
 @router.delete("/{cv_id}", response_model=CVResponse)
 def delete_student_cv(
     cv_id: int,
@@ -178,6 +141,13 @@ def delete_student_cv(
             CV.student_id == student_profile.student_id,
             CV.cv_id != cv.cv_id,
         ).order_by(CV.cv_id).first()
+
+    try:
+        delete_cv_pdf(cv.file_url)
+    except StorageConfigurationError as error:
+        raise HTTPException(status_code=503, detail=str(error)) from error
+    except StorageDeleteError as error:
+        raise HTTPException(status_code=502, detail=str(error)) from error
 
     db.delete(cv)
     if replacement:
