@@ -90,6 +90,13 @@ JWT_SECRET_KEY=replace-with-a-long-random-secret
 # Optional: Google Sign-In
 GOOGLE_CLIENT_ID=your-google-client-id.apps.googleusercontent.com
 
+# Required for CV PDF upload
+SUPABASE_URL=https://your-project.supabase.co
+SUPABASE_SERVICE_ROLE_KEY=your-supabase-service-role-key
+SUPABASE_STORAGE_BUCKET=cvs
+# Optional when the bucket uses a custom public URL
+SUPABASE_STORAGE_PUBLIC_URL=https://your-project.supabase.co/storage/v1/object/public/cvs
+
 # Optional: password-reset email
 FRONTEND_RESET_PASSWORD_URL=http://localhost:3000/reset-password
 SMTP_HOST=smtp.example.com
@@ -162,7 +169,7 @@ Swagger UI là tài liệu chi tiết và luôn phản ánh request/response m�
 | Password reset | `POST /auth/forgot-password`, `POST /auth/reset-password` |
 | Profiles | `GET, PUT /students/profile`, `GET, PUT /recruiters/profile` |
 | Companies | `POST /companies`, `GET, PUT, DELETE /companies/{company_id}` |
-| CV | `GET, POST, PUT, DELETE /cvs/cv`, `GET /cvs/cv/default` |
+| CV | `GET, POST, PUT, DELETE /cvs`, `PATCH /cvs/{cv_id}/default` |
 | Student skills | `GET, POST /skills/skills`, `PUT, DELETE /skills/skills/{skill_id}` |
 | Jobs | `GET, POST /jobs`, `GET, PUT, DELETE /jobs/{job_id}`, `GET /jobs/search`, `PATCH /jobs/{job_id}/status` |
 | Job skills | `GET /jobs/job_skills`, `GET, POST /jobs/{job_id}/skills`, `PUT, DELETE /jobs/{job_id}/skills/{skill_id}` |
@@ -196,10 +203,11 @@ Response:
 
 ## Recommendation flow
 
-1. Student có một CV mặc định với `parsed_text`.
-2. `POST /api/v1/recommendations/generate` lấy những job có trạng thái `OPEN`.
-3. Điểm TF-IDF từ CV/job được kết hợp với skill matching theo tỷ trọng 40/60.
-4. API trả về điểm, lý do, `matched_skills` và `missing_skills`.
+1. Student upload PDF bằng `multipart/form-data` tới `POST /api/v1/cvs` với field `file` và tùy chọn `is_default`.
+2. Backend lưu PDF trên Supabase Storage, lưu URL vào `file_url` và text trích xuất bằng PyMuPDF vào `parsed_text`.
+3. `POST /api/v1/recommendations/generate` lấy những job có trạng thái `OPEN`.
+4. Điểm TF-IDF từ CV/job được kết hợp với skill matching theo tỷ trọng 40/60.
+5. API trả về điểm, lý do, `matched_skills` và `missing_skills`.
 
 ## Kiểm tra
 
