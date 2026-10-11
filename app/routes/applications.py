@@ -10,8 +10,14 @@ from ..models.notification import Notification
 from ..models.student_profile import StudentProfile
 from ..models.job import Job
 from ..models.cv import CV
+from ..models.company import Company
 from ..models.recruiter_profile import RecruiterProfile
-from ..schemas.application import ApplicationCreate, ApplicationResponse, ApplicationStatusUpdate
+from ..schemas.application import (
+	ApplicationCreate,
+	ApplicationResponse,
+	StudentApplicationResponse,
+	ApplicationStatusUpdate,
+)
 
 router = APIRouter()
 
@@ -77,6 +83,60 @@ def create_application(
 	db.refresh(application)
 
 	return application
+
+@router.get("/applications/me", response_model=list[StudentApplicationResponse])
+def get_my_applications(
+	current_user: User = Depends(get_current_user),
+	db: Session = Depends(get_db),
+):
+	student_profile = (
+		db.query(StudentProfile)
+		.filter(
+			StudentProfile.user_id == current_user.user_id
+		)
+		.first()
+	)
+
+	if not student_profile:
+		raise HTTPException(
+			status_code=404,
+			detail="Student profile not found",
+		)
+
+	rows = (
+		db.query(Application, Job, Company)
+		.join(
+			Job,
+			Application.job_id == Job.job_id,
+		)
+		.join(
+			Company,
+			Job.company_id == Company.company_id,
+		)
+		.filter(
+			Application.student_id
+			== student_profile.student_id
+		)
+		.order_by(Application.applied_at.desc())
+		.all()
+	)
+
+	return [
+		StudentApplicationResponse(
+			application_id=application.application_id,
+			student_id=application.student_id,
+			job_id=application.job_id,
+			cv_id=application.cv_id,
+			cover_letter=application.cover_letter,
+			status=application.status,
+			applied_at=application.applied_at,
+			updated_at=application.updated_at,
+			job_title=job.title,
+			company_name=company.company_name,
+			location=job.location,
+		)
+		for application, job, company in rows
+	]
 
 @router.get("/applications/{application_id}", response_model=ApplicationResponse)
 def get_application(

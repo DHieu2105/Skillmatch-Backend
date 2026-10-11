@@ -18,5 +18,10 @@ class ApplicationResponse(BaseModel):
     class Config:
         from_attributes = True
 
+class StudentApplicationResponse(ApplicationResponse):
+    job_title: str
+    company_name: str
+    location: str
+
 class ApplicationStatusUpdate(BaseModel):
     status: str
