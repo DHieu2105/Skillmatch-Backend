@@ -89,6 +89,8 @@ def get_my_recommendations(
 
     recommendations = db.query(Recommendation).filter(
         Recommendation.student_id == student_profile.student_id
+    ).order_by(
+        Recommendation.score.desc()
     ).all()
 
     return [
