@@ -16,6 +16,7 @@ from ..models.user import User
 from ..models.student_profile import StudentProfile
 from ..models.cv import CV
 from ..models.job import Job
+from ..models.company import Company
 from ..models.skill import Skill
 from ..schemas.recommendation import RecommendationResponse
 
@@ -39,11 +40,22 @@ def _recommendation_response(
     )
     skills = db.query(Skill).filter(Skill.skill_id.in_(skill_ids)).all()
     skill_names = {skill.skill_id: skill.skill_name for skill in skills}
+    job = db.query(Job).filter(
+        Job.job_id == recommendation.job_id
+    ).first()
+    company = None
+    if job:
+        company = db.query(Company).filter(
+            Company.company_id == job.company_id
+        ).first()
 
     return RecommendationResponse(
         recommendation_id=recommendation.recommendation_id,
         student_id=recommendation.student_id,
         job_id=recommendation.job_id,
+        job_title=job.title if job else "Unknown Job",
+        company_name=company.company_name if company else "Unknown Company",
+        location=job.location if job else "",
         score=recommendation.score,
         reason=recommendation.reason,
         matching_method=recommendation.matching_method,

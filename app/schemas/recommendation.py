@@ -6,6 +6,9 @@ class RecommendationResponse(BaseModel):
     recommendation_id: int
     student_id: int
     job_id: int
+    job_title: str
+    company_name: str
+    location: str
     score: float
     reason: str
     matching_method: str
@@ -15,4 +18,3 @@ class RecommendationResponse(BaseModel):
 
     class Config:
         from_attributes = True
-
