@@ -1,5 +1,4 @@
 from pydantic import BaseModel, Field
-from datetime import datetime
 
 class StudentProfileResponse(BaseModel):
     student_id: int
@@ -17,7 +16,7 @@ class StudentProfileResponse(BaseModel):
         from_attributes = True
 
 
-class StudentProfileUpdate(BaseModel):
+class StudentProfileCreate(BaseModel):
     full_name: str
     date_of_birth: str
     gender: str
@@ -26,3 +25,15 @@ class StudentProfileUpdate(BaseModel):
     gpa: float = Field(..., ge=0, le=4)
     graduation_year: int = Field(..., ge=1900, le=2100)
     career_goal: str
+
+
+class StudentProfileUpdate(StudentProfileCreate):
+    pass
+
+
+class ProfileCompletionResponse(BaseModel):
+    percentage: int
+    profile_fields_completed: int
+    profile_fields_total: int
+    has_cv: bool
+    has_skills: bool
