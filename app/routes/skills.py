@@ -7,7 +7,12 @@ from ..models.user import User
 from ..models.student_profile import StudentProfile
 from ..models.skill import Skill
 from ..models.student_skill import StudentSkill
-from ..schemas.skill import SkillCreate, SkillResponse
+from ..schemas.skill import (
+    SkillBase,
+    SkillCreate,
+    SkillResponse,
+    SkillUpdate,
+)
 
 router = APIRouter()
 
@@ -17,7 +22,16 @@ def require_student(current_user: User):
         raise HTTPException(status_code=403, detail="Student role required")
 
 
-@router.get("/skills", response_model=list[SkillResponse])
+@router.get("/catalog", response_model=list[SkillBase])
+def get_skill_catalog(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    require_student(current_user)
+    return db.query(Skill).order_by(Skill.skill_name.asc()).all()
+
+
+@router.get("", response_model=list[SkillResponse])
 def get_student_skills(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
@@ -53,7 +67,7 @@ def get_student_skills(
     return skills
 
 
-@router.post("/skills", response_model=SkillResponse)
+@router.post("", response_model=SkillResponse, status_code=201)
 def add_student_skill(
     skill_data: SkillCreate,
     current_user: User = Depends(get_current_user),
@@ -71,6 +85,13 @@ def add_student_skill(
     skill = db.query(Skill).filter(Skill.skill_id == skill_data.skill_id).first()
     if not skill:
         raise HTTPException(status_code=404, detail="Skill not found")
+
+    existing_skill = db.query(StudentSkill).filter(
+        StudentSkill.student_id == student_profile.student_id,
+        StudentSkill.skill_id == skill_data.skill_id,
+    ).first()
+    if existing_skill:
+        raise HTTPException(status_code=400, detail="Skill already added")
 
     student_skill = StudentSkill(
         student_id=student_profile.student_id,
@@ -93,7 +114,7 @@ def add_student_skill(
     )
 
 
-@router.delete("/skills/{skill_id}", response_model=SkillResponse)
+@router.delete("/{skill_id}", response_model=SkillResponse)
 def delete_student_skill(
     skill_id: int,
     current_user: User = Depends(get_current_user),
@@ -135,10 +156,10 @@ def delete_student_skill(
     return deleted_skill
 
 
-@router.put("/skills/{skill_id}", response_model=SkillResponse)
+@router.put("/{skill_id}", response_model=SkillResponse)
 def update_student_skill(
     skill_id: int,
-    skill_data: SkillCreate,
+    skill_data: SkillUpdate,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):

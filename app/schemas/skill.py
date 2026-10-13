@@ -20,3 +20,8 @@ class SkillCreate(BaseModel):
     skill_id: int
     level: str
     source: str
+
+
+class SkillUpdate(BaseModel):
+    level: str
+    source: str
