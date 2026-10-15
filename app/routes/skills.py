@@ -27,7 +27,6 @@ def get_skill_catalog(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    require_student(current_user)
     return db.query(Skill).order_by(Skill.skill_name.asc()).all()
 
 
