@@ -25,3 +25,16 @@ class StudentApplicationResponse(ApplicationResponse):
 
 class ApplicationStatusUpdate(BaseModel):
     status: str
+
+
+class RecruiterApplicationResponse(ApplicationResponse):
+    student_name: str
+    student_email: str
+    university: str
+    major: str
+    gpa: float
+    graduation_year: int
+    career_goal: str
+    job_title: str
+    cv_file_name: str
+    cv_file_url: str

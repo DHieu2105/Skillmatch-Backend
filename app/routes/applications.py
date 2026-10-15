@@ -17,6 +17,7 @@ from ..schemas.application import (
 	ApplicationResponse,
 	StudentApplicationResponse,
 	ApplicationStatusUpdate,
+	RecruiterApplicationResponse,
 )
 
 router = APIRouter()
@@ -198,6 +199,91 @@ def get_job_applications(
 	).all()
 
 	return applications
+
+def _get_recruiter_profile(current_user: User, db: Session):
+    if current_user.role.upper() != "RECRUITER":
+        raise HTTPException(status_code=403, detail="Recruiter role required")
+
+    profile = db.query(RecruiterProfile).filter(
+        RecruiterProfile.user_id == current_user.user_id
+    ).first()
+    if not profile:
+        raise HTTPException(status_code=404, detail="Recruiter profile not found")
+    return profile
+
+
+def _recruiter_applications_query(db: Session, company_id: int):
+    return (
+        db.query(Application, StudentProfile, User, Job, CV)
+        .select_from(Application)
+        .join(Job, Application.job_id == Job.job_id)
+        .join(StudentProfile, Application.student_id == StudentProfile.student_id)
+        .join(User, StudentProfile.user_id == User.user_id)
+        .join(CV, Application.cv_id == CV.cv_id)
+        .filter(Job.company_id == company_id)
+    )
+
+
+def _recruiter_application_response(row):
+    application, student, user, job, cv = row
+    return RecruiterApplicationResponse(
+        application_id=application.application_id,
+        student_id=application.student_id,
+        job_id=application.job_id,
+        cv_id=application.cv_id,
+        cover_letter=application.cover_letter,
+        status=application.status,
+        applied_at=application.applied_at,
+        updated_at=application.updated_at,
+        student_name=student.full_name,
+        student_email=user.email,
+        university=student.university,
+        major=student.major,
+        gpa=student.gpa,
+        graduation_year=student.graduation_year,
+        career_goal=student.career_goal,
+        job_title=job.title,
+        cv_file_name=cv.file_name,
+        cv_file_url=cv.file_url,
+    )
+
+
+@router.get(
+    "/recruiter/applications",
+    response_model=list[RecruiterApplicationResponse],
+)
+def get_recruiter_applications(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    profile = _get_recruiter_profile(current_user, db)
+    rows = (
+        _recruiter_applications_query(db, profile.company_id)
+        .order_by(Application.applied_at.desc(), Application.application_id.desc())
+        .all()
+    )
+    return [_recruiter_application_response(row) for row in rows]
+
+
+@router.get(
+    "/recruiter/applications/{application_id}",
+    response_model=RecruiterApplicationResponse,
+)
+def get_recruiter_application(
+    application_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    profile = _get_recruiter_profile(current_user, db)
+    row = (
+        _recruiter_applications_query(db, profile.company_id)
+        .filter(Application.application_id == application_id)
+        .first()
+    )
+    if not row:
+        raise HTTPException(status_code=404, detail="Application not found")
+    return _recruiter_application_response(row)
+
 
 @router.patch("/applications/{application_id}/status", response_model=ApplicationResponse)
 def update_application_status(
