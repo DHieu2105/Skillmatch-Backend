@@ -10,6 +10,8 @@ from ..models.user import User
 from ..models.job import Job
 from ..models.company import Company
 from ..models.application import Application
+from ..models.job_skill import JobSkill
+from ..models.recommendation import Recommendation
 from ..models.recruiter_profile import RecruiterProfile
 
 from ..schemas.job import (
@@ -286,6 +288,14 @@ def delete_job(
             status_code=409,
             detail="Cannot delete a job with existing applications",
         )
+
+    db.query(Recommendation).filter(
+        Recommendation.job_id == job_id
+    ).delete(synchronize_session=False)
+
+    db.query(JobSkill).filter(
+        JobSkill.job_id == job_id
+    ).delete(synchronize_session=False)
 
     db.delete(job)
     db.commit()
