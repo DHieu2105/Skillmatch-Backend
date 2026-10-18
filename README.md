@@ -64,6 +64,12 @@ Tạo `.env` tại thư mục gốc theo mẫu ở phần [Biến môi trường
 .\.venv\Scripts\python -m app.create_tables
 ```
 
+Lệnh khởi tạo database cũng tự động thêm các kỹ năng mặc định còn thiếu vào catalog. Seed là idempotent nên không tạo trùng tên. Có thể chạy riêng bằng:
+
+```powershell
+.\.venv\Scripts\python -m app.seed_skills
+```
+
 Lệnh này tạo bảng còn thiếu và bổ sung các cột xác thực Google cho database đã tồn tại.
 
 ### 4. Chạy server
@@ -173,7 +179,8 @@ Swagger UI là tài liệu chi tiết và luôn phản ánh request/response m�
 | Profiles | `GET, PUT /students/profile`, `GET, PUT /recruiters/profile` |
 | Companies | `POST /companies`, `GET, PUT, DELETE /companies/{company_id}` |
 | CV | `GET, POST, DELETE /cvs`, `PATCH /cvs/{cv_id}/default` |
-| Student skills | `GET, POST /skills/skills`, `PUT, DELETE /skills/skills/{skill_id}` |
+| Skill catalog | `GET, POST /skills/catalog` |
+| Student skills | `GET, POST /skills`, `PUT, DELETE /skills/{skill_id}` |
 | Jobs | `GET, POST /jobs`, `GET, PUT, DELETE /jobs/{job_id}`, `GET /jobs/search`, `PATCH /jobs/{job_id}/status` |
 | Job skills | `GET /jobs/job_skills`, `GET, POST /jobs/{job_id}/skills`, `PUT, DELETE /jobs/{job_id}/skills/{skill_id}` |
 | Applications | `POST /applications`, `GET /applications/{application_id}`, `GET /jobs/{job_id}/applications`, `PATCH /applications/{application_id}/status` |

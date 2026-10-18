@@ -1,6 +1,7 @@
 from sqlalchemy import inspect, text
 
-from app.core.database import Base, engine
+from app.core.database import Base, SessionLocal, engine
+from app.seed_skills import seed_skill_catalog
 
 from app.models import application
 from app.models import user
@@ -83,6 +84,23 @@ def migrate_integrity_constraints():
 			"CREATE UNIQUE INDEX IF NOT EXISTS uq_cv_default_per_student "
 			"ON cvs (student_id) WHERE is_default = TRUE"
 		))
+		duplicate_skill_name = connection.execute(text(
+			"SELECT LOWER(skill_name) FROM skills "
+			"GROUP BY LOWER(skill_name) HAVING COUNT(*) > 1 LIMIT 1"
+		)).first()
+		if not duplicate_skill_name:
+			connection.execute(text(
+				"CREATE UNIQUE INDEX IF NOT EXISTS uq_skill_name_ci "
+				"ON skills (LOWER(skill_name))"
+			))
 
 
 migrate_integrity_constraints()
+
+
+def seed_reference_data():
+	with SessionLocal() as db:
+		seed_skill_catalog(db)
+
+
+seed_reference_data()

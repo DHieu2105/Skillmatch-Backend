@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, Field, field_validator
 
 
 class SkillBase(BaseModel):
@@ -9,6 +9,19 @@ class SkillBase(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+class SkillCatalogCreate(BaseModel):
+    skill_name: str = Field(min_length=1, max_length=100)
+    category: str = Field(min_length=1, max_length=100)
+
+    @field_validator("skill_name", "category")
+    @classmethod
+    def normalize_text(cls, value: str) -> str:
+        normalized = " ".join(value.split())
+        if not normalized:
+            raise ValueError("Value cannot be empty")
+        return normalized
 
 
 class SkillResponse(SkillBase):

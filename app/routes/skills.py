@@ -1,4 +1,6 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Response, status
+from sqlalchemy import func, text
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from ..core.database import get_db
@@ -7,8 +9,10 @@ from ..models.user import User
 from ..models.student_profile import StudentProfile
 from ..models.skill import Skill
 from ..models.student_skill import StudentSkill
+from ..services.skill_catalog import sync_skill_id_sequence
 from ..schemas.skill import (
     SkillBase,
+    SkillCatalogCreate,
     SkillCreate,
     SkillResponse,
     SkillUpdate,
@@ -28,6 +32,55 @@ def get_skill_catalog(
     db: Session = Depends(get_db),
 ):
     return db.query(Skill).order_by(Skill.skill_name.asc()).all()
+
+
+@router.post("/catalog", response_model=SkillBase, status_code=status.HTTP_201_CREATED)
+def create_catalog_skill(
+    skill_data: SkillCatalogCreate,
+    response: Response,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    if current_user.role.upper() not in {"STUDENT", "RECRUITER"}:
+        raise HTTPException(status_code=403, detail="User role not allowed")
+
+    normalized_name = skill_data.skill_name.casefold()
+    if db.bind and db.bind.dialect.name == "postgresql":
+        db.execute(
+            text("SELECT pg_advisory_xact_lock(hashtext(:skill_name))"),
+            {"skill_name": normalized_name},
+        )
+
+    existing_skill = db.query(Skill).filter(
+        func.lower(Skill.skill_name) == normalized_name
+    ).first()
+
+    if existing_skill:
+        response.status_code = status.HTTP_200_OK
+        return existing_skill
+
+    sync_skill_id_sequence(db)
+    skill = Skill(
+        skill_name=skill_data.skill_name,
+        category=skill_data.category,
+        description=f"{skill_data.skill_name} skill in {skill_data.category}.",
+    )
+    db.add(skill)
+
+    try:
+        db.commit()
+    except IntegrityError:
+        db.rollback()
+        existing_skill = db.query(Skill).filter(
+            func.lower(Skill.skill_name) == normalized_name
+        ).first()
+        if existing_skill:
+            response.status_code = status.HTTP_200_OK
+            return existing_skill
+        raise
+
+    db.refresh(skill)
+    return skill
 
 
 @router.get("", response_model=list[SkillResponse])
