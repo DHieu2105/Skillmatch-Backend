@@ -6,7 +6,8 @@ from sqlalchemy.orm import Session
 from app.models.recommendation import Recommendation
 from app.nlp.matcher import calculate_similarity
 from app.nlp.skill_matcher import (
-    get_skill_ids,
+    get_job_skills,
+    get_student_skills,
     match_skills,
     calculate_final_score,
 )
@@ -32,9 +33,9 @@ def _recommendation_response(
     recommendation: Recommendation,
     db: Session,
 ) -> RecommendationResponse:
-    student_skill_ids = get_skill_ids(db, student_id=recommendation.student_id)
-    job_skill_ids = get_skill_ids(db, job_id=recommendation.job_id)
-    skill_result = match_skills(student_skill_ids, job_skill_ids)
+    student_skills = get_student_skills(db, recommendation.student_id)
+    job_skills = get_job_skills(db, recommendation.job_id)
+    skill_result = match_skills(student_skills, job_skills)
     skill_ids = (
         skill_result["matched_skill_ids"] + skill_result["missing_skill_ids"]
     )
@@ -49,6 +50,26 @@ def _recommendation_response(
             Company.company_id == job.company_id
         ).first()
 
+    cv = db.query(CV).filter(
+        CV.student_id == recommendation.student_id,
+        CV.is_default == True,
+    ).first()
+    tfidf_score = (
+        calculate_similarity(cv.parsed_text, job.description) * 100
+        if cv and job
+        else 0.0
+    )
+    current_score = calculate_final_score(
+        tfidf_score,
+        skill_result["match_score"],
+    )
+    matched_count = len(skill_result["matched_skill_ids"])
+    missing_count = len(skill_result["missing_skill_ids"])
+    reason = (
+        f"Matched {matched_count}/{len(job_skills)} job skills"
+        f", missing or below level for {missing_count} skills"
+    )
+
     return RecommendationResponse(
         recommendation_id=recommendation.recommendation_id,
         student_id=recommendation.student_id,
@@ -56,8 +77,8 @@ def _recommendation_response(
         job_title=job.title if job else "Unknown Job",
         company_name=company.company_name if company else "Unknown Company",
         location=job.location if job else "",
-        score=recommendation.score,
-        reason=recommendation.reason,
+        score=current_score,
+        reason=reason,
         matching_method=recommendation.matching_method,
         created_at=recommendation.created_at,
         matched_skills=[
@@ -93,10 +114,11 @@ def get_my_recommendations(
         Recommendation.score.desc()
     ).all()
 
-    return [
+    responses = [
         _recommendation_response(recommendation, db)
         for recommendation in recommendations
     ]
+    return sorted(responses, key=lambda item: item.score, reverse=True)
 
 
 @router.post(
@@ -143,10 +165,7 @@ def generate_recommendations(
     for recommendation in stale_recommendations.all():
         db.delete(recommendation)
 
-    student_skill_ids = get_skill_ids(
-        db,
-        student_id=student_profile.student_id,
-    )
+    student_skills = get_student_skills(db, student_profile.student_id)
 
     for job in jobs:
         score = calculate_similarity(
@@ -154,22 +173,19 @@ def generate_recommendations(
             job.description
         ) * 100
 
-        job_skill_ids = get_skill_ids(
-            db,
-            job_id=job.job_id
-        )
+        job_skills = get_job_skills(db, job.job_id)
 
         skill_result = match_skills(
-            student_skill_ids,
-            job_skill_ids
+            student_skills,
+            job_skills,
         )
         matched_count = len(skill_result["matched_skill_ids"])
         missing_count = len(skill_result["missing_skill_ids"])
-        total_count = len(job_skill_ids)
+        total_count = len(job_skills)
 
         reason = (
             f"Matched {matched_count}/{total_count} job skills"
-            f", missing {missing_count} skills"
+            f", missing or below level for {missing_count} skills"
         )
 
         score = calculate_final_score(
@@ -186,6 +202,7 @@ def generate_recommendations(
             existing_recommendation.score = score
             existing_recommendation.reason = reason
             existing_recommendation.matching_method = "TF_IDF + SKILL_MATCHING"
+            existing_recommendation.created_at = datetime.utcnow()
         else:
             recommendation = Recommendation(
                 student_id=student_profile.student_id,

@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import date, datetime
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
@@ -56,6 +56,12 @@ def create_application(
 
 	if job.status.upper() != "OPEN":
 		raise HTTPException(status_code=400, detail="Job is not open")
+
+	if job.deadline < date.today():
+		raise HTTPException(
+			status_code=400,
+			detail="Application deadline has passed",
+		)
 
 	existing_application = db.query(Application).filter(
 		Application.student_id == student_profile.student_id,
