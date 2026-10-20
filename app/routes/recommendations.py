@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import date, datetime
 
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
@@ -152,7 +152,10 @@ def generate_recommendations(
             detail="Default CV not found"
         )
 
-    jobs = db.query(Job).filter(Job.status == "OPEN").all()
+    jobs = db.query(Job).filter(
+        Job.status == "OPEN",
+        Job.deadline >= date.today(),
+    ).all()
     open_job_ids = {job.job_id for job in jobs}
     stale_recommendations = db.query(Recommendation).filter(
         Recommendation.student_id == student_profile.student_id,
