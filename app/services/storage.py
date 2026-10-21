@@ -54,7 +54,9 @@ def upload_cv_pdf(file_name: str, content: bytes) -> str:
         raise StorageUploadError("Could not reach Supabase Storage") from error
 
     if not response.ok:
-        raise StorageUploadError("Supabase Storage rejected the PDF upload")
+        raise StorageUploadError(
+            f"Supabase upload failed ({response.status_code}): {response.text}"
+        )
 
     public_url = os.getenv("SUPABASE_STORAGE_PUBLIC_URL")
     if public_url:

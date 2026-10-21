@@ -67,9 +67,6 @@ def create_student_cv(
 ):
     student_profile = get_student_profile(current_user, db)
 
-    if file.content_type != "application/pdf":
-        raise HTTPException(status_code=415, detail="Only PDF files are supported")
-
     file_name = PurePosixPath(
         (file.filename or "cv.pdf").replace("\\", "/").strip()
     ).name
