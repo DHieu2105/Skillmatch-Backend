@@ -42,6 +42,25 @@ def migrate_auth_columns():
 migrate_auth_columns()
 
 
+def migrate_cv_archive_column():
+	cv_columns = {column["name"] for column in inspect(engine).get_columns("cvs")}
+
+	if "is_archived" not in cv_columns:
+		with engine.begin() as connection:
+			connection.execute(text(
+				"ALTER TABLE cvs "
+				"ADD COLUMN is_archived BOOLEAN NOT NULL DEFAULT FALSE"
+			))
+			connection.execute(text(
+				"UPDATE cvs SET is_archived = TRUE "
+				"WHERE is_default = FALSE "
+				"AND cv_id IN (SELECT DISTINCT cv_id FROM applications)"
+			))
+
+
+migrate_cv_archive_column()
+
+
 def migrate_integrity_constraints():
 	user_columns = {column["name"] for column in inspect(engine).get_columns("companies")}
 

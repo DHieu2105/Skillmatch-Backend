@@ -38,7 +38,11 @@ def get_student_profile(current_user: User, db: Session) -> StudentProfile:
     return student_profile
 
 
-def clear_default_cvs(db: Session, student_id: int, excluded_cv_id: int | None = None):
+def archive_default_cvs(
+    db: Session,
+    student_id: int,
+    excluded_cv_id: int | None = None,
+):
     query = db.query(CV).filter(
         CV.student_id == student_id,
         CV.is_default.is_(True),
@@ -47,6 +51,7 @@ def clear_default_cvs(db: Session, student_id: int, excluded_cv_id: int | None =
         query = query.filter(CV.cv_id != excluded_cv_id)
     for cv in query.all():
         cv.is_default = False
+        cv.is_archived = True
 
 
 @router.get("", response_model=list[CVResponse])
@@ -55,7 +60,10 @@ def get_student_cvs(
     db: Session = Depends(get_db),
 ):
     student_profile = get_student_profile(current_user, db)
-    return db.query(CV).filter(CV.student_id == student_profile.student_id).all()
+    return db.query(CV).filter(
+        CV.student_id == student_profile.student_id,
+        CV.is_archived.is_(False),
+    ).order_by(CV.created_at.desc(), CV.cv_id.desc()).all()
 
 
 @router.post("", response_model=CVResponse, status_code=201)
@@ -93,10 +101,14 @@ def create_student_cv(
     except StorageUploadError as error:
         raise HTTPException(status_code=502, detail=str(error)) from error
 
-    has_cv = db.query(CV).filter(CV.student_id == student_profile.student_id).first()
-    should_be_default = is_default or not has_cv
+    has_active_cv = db.query(CV).filter(
+        CV.student_id == student_profile.student_id,
+        CV.is_archived.is_(False),
+    ).first()
+    should_be_default = is_default or not has_active_cv
     if should_be_default:
-        clear_default_cvs(db, student_profile.student_id)
+        archive_default_cvs(db, student_profile.student_id)
+        db.flush()
 
     new_cv = CV(
         student_id=student_profile.student_id,
@@ -104,6 +116,7 @@ def create_student_cv(
         file_url=file_url,
         parsed_text=parsed_text,
         is_default=should_be_default,
+        is_archived=False,
     )
     db.add(new_cv)
     db.commit()
@@ -121,23 +134,37 @@ def delete_student_cv(
     cv = db.query(CV).filter(
         CV.cv_id == cv_id,
         CV.student_id == student_profile.student_id,
+        CV.is_archived.is_(False),
     ).first()
     if not cv:
         raise HTTPException(status_code=404, detail="CV not found")
 
-    if db.query(Application).filter(Application.cv_id == cv_id).first():
-        raise HTTPException(
-            status_code=409,
-            detail="Cannot delete a CV used by an application",
-        )
-
-    deleted_cv = CVResponse.model_validate(cv)
     replacement = None
     if cv.is_default:
         replacement = db.query(CV).filter(
             CV.student_id == student_profile.student_id,
             CV.cv_id != cv.cv_id,
-        ).order_by(CV.cv_id).first()
+            CV.is_archived.is_(False),
+        ).order_by(CV.created_at.desc(), CV.cv_id.desc()).first()
+
+    is_used = db.query(Application).filter(Application.cv_id == cv_id).first()
+    if is_used:
+        if cv.is_default and not replacement:
+            raise HTTPException(
+                status_code=409,
+                detail="Set another CV as default before removing this CV",
+            )
+
+        cv.is_default = False
+        cv.is_archived = True
+        db.flush()
+        if replacement:
+            replacement.is_default = True
+        db.commit()
+        db.refresh(cv)
+        return cv
+
+    deleted_cv = CVResponse.model_validate(cv)
 
     try:
         delete_cv_pdf(cv.file_url)
@@ -147,6 +174,7 @@ def delete_student_cv(
         raise HTTPException(status_code=502, detail=str(error)) from error
 
     db.delete(cv)
+    db.flush()
     if replacement:
         replacement.is_default = True
     db.commit()
@@ -164,13 +192,16 @@ def set_default_cv(
     cv = db.query(CV).filter(
         CV.cv_id == cv_id,
         CV.student_id == student_profile.student_id,
+        CV.is_archived.is_(False),
     ).first()
     if not cv:
         raise HTTPException(status_code=404, detail="CV not found")
     if not default_data.is_default:
         raise HTTPException(status_code=400, detail="A CV must be set as default")
 
-    clear_default_cvs(db, student_profile.student_id, cv.cv_id)
+    archive_default_cvs(db, student_profile.student_id, cv.cv_id)
+    db.flush()
+    cv.is_archived = False
     cv.is_default = True
     db.commit()
     db.refresh(cv)

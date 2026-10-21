@@ -49,6 +49,7 @@ def create_application(
 	cv = db.query(CV).filter(
 		CV.cv_id == application_data.cv_id,
 		CV.student_id == student_profile.student_id,
+		CV.is_archived.is_(False),
 	).first()
 
 	if not cv:

@@ -22,6 +22,11 @@ class CV(Base):
     file_url: Mapped[str] = mapped_column(String, nullable=False)
     parsed_text: Mapped[str] = mapped_column(String, nullable=False)
     is_default: Mapped[bool] = mapped_column(nullable=False)
+    is_archived: Mapped[bool] = mapped_column(
+        nullable=False,
+        default=False,
+        server_default=text("false"),
+    )
     created_at: Mapped[datetime] = mapped_column(
         DateTime, nullable=False, default=datetime.utcnow
     )

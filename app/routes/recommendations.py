@@ -53,6 +53,7 @@ def _recommendation_response(
     cv = db.query(CV).filter(
         CV.student_id == recommendation.student_id,
         CV.is_default == True,
+        CV.is_archived == False,
     ).first()
     tfidf_score = (
         calculate_similarity(cv.parsed_text, job.description) * 100
@@ -143,7 +144,8 @@ def generate_recommendations(
 
     cv = db.query(CV).filter(
         CV.student_id == student_profile.student_id,
-        CV.is_default == True
+        CV.is_default == True,
+        CV.is_archived == False,
     ).first()
 
     if not cv:

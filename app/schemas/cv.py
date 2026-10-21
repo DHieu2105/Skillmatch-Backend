@@ -12,6 +12,7 @@ class CVResponse(BaseModel):
     file_url: str
     parsed_text: str
     is_default: bool
+    is_archived: bool
 
     class Config:
         from_attributes = True
