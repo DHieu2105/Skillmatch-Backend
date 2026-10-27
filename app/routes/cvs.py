@@ -38,7 +38,7 @@ def get_student_profile(current_user: User, db: Session) -> StudentProfile:
     return student_profile
 
 
-def archive_default_cvs(
+def clear_default_cvs(
     db: Session,
     student_id: int,
     excluded_cv_id: int | None = None,
@@ -51,7 +51,6 @@ def archive_default_cvs(
         query = query.filter(CV.cv_id != excluded_cv_id)
     for cv in query.all():
         cv.is_default = False
-        cv.is_archived = True
 
 
 @router.get("", response_model=list[CVResponse])
@@ -107,7 +106,7 @@ def create_student_cv(
     ).first()
     should_be_default = is_default or not has_active_cv
     if should_be_default:
-        archive_default_cvs(db, student_profile.student_id)
+        clear_default_cvs(db, student_profile.student_id)
         db.flush()
 
     new_cv = CV(
@@ -199,7 +198,7 @@ def set_default_cv(
     if not default_data.is_default:
         raise HTTPException(status_code=400, detail="A CV must be set as default")
 
-    archive_default_cvs(db, student_profile.student_id, cv.cv_id)
+    clear_default_cvs(db, student_profile.student_id, cv.cv_id)
     db.flush()
     cv.is_archived = False
     cv.is_default = True
