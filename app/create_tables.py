@@ -61,6 +61,16 @@ def migrate_cv_archive_column():
 migrate_cv_archive_column()
 
 
+def migrate_avatar_column():
+	user_columns = {column["name"] for column in inspect(engine).get_columns("users")}
+	if "avatar_url" not in user_columns:
+		with engine.begin() as connection:
+			connection.execute(text("ALTER TABLE users ADD COLUMN avatar_url VARCHAR"))
+
+
+migrate_avatar_column()
+
+
 def migrate_integrity_constraints():
 	user_columns = {column["name"] for column in inspect(engine).get_columns("companies")}
 

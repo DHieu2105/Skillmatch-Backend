@@ -3,7 +3,7 @@ import hashlib
 import os
 import secrets
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
 from sqlalchemy.orm import Session  
 from ..schemas.auth import (
     ChangePasswordRequest,
@@ -15,6 +15,13 @@ from ..schemas.auth import (
 )
 from ..models.password_reset_token import PasswordResetToken
 from ..models.user import User
+from ..models.student_profile import StudentProfile
+from ..models.recruiter_profile import RecruiterProfile
+from ..services.cloudinary_storage import (
+    upload_avatar_to_cloudinary,
+    CloudinaryConfigError,
+    CloudinaryUploadError,
+)
 from ..core.database import get_db
 from ..core.security import (
     create_access_token,
@@ -102,15 +109,65 @@ def login(
 
 
 @router.get("/me")
-def get_me(current_user: User = Depends(get_current_user)):
+def get_me(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    full_name = None
+    if (current_user.role or "").upper() == "STUDENT":
+        student = db.query(StudentProfile).filter(StudentProfile.user_id == current_user.user_id).first()
+        if student:
+            full_name = student.full_name
+    elif (current_user.role or "").upper() == "RECRUITER":
+        recruiter = db.query(RecruiterProfile).filter(RecruiterProfile.user_id == current_user.user_id).first()
+        if recruiter:
+            full_name = recruiter.full_name
+
     return {
         "user_id": current_user.user_id,
         "email": current_user.email,
+        "full_name": full_name,
+        "avatar_url": current_user.avatar_url,
         "role": current_user.role,
         "status": current_user.status,
         "auth_provider": current_user.auth_provider,
         "has_password": current_user.password_hash is not None,
+
     }
+
+
+@router.post("/avatar")
+def upload_avatar(
+    file: UploadFile = File(...),
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    if not file.content_type or not file.content_type.startswith("image/"):
+        raise HTTPException(status_code=400, detail="Chỉ chấp nhận tệp hình ảnh (PNG, JPG, WEBP,...)")
+
+    content = file.file.read()
+    if len(content) > 5 * 1024 * 1024:
+        raise HTTPException(status_code=400, detail="Kích thước ảnh tối đa là 5MB")
+
+    try:
+        avatar_url = upload_avatar_to_cloudinary(content, file.filename or "avatar.png")
+    except CloudinaryConfigError as err:
+        raise HTTPException(status_code=500, detail=str(err))
+    except CloudinaryUploadError as err:
+        raise HTTPException(status_code=502, detail=str(err))
+    except Exception as err:
+        raise HTTPException(status_code=500, detail=f"Lỗi khi tải ảnh lên Cloudinary: {str(err)}")
+
+    current_user.avatar_url = avatar_url
+    current_user.update_at = datetime.utcnow()
+    db.commit()
+    db.refresh(current_user)
+
+    return {
+        "avatar_url": avatar_url,
+        "message": "Cập nhật ảnh đại diện thành công",
+    }
+
+
+
+
 
 
 @router.put("/password")

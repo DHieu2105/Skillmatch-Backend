@@ -14,5 +14,6 @@ class User(Base):
     auth_provider: Mapped[str] = mapped_column(String, nullable=False, default="local")
     role: Mapped[str] = mapped_column(String, nullable=False)
     status: Mapped[str] = mapped_column(String, nullable=False)
+    avatar_url: Mapped[str | None] = mapped_column(String, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, nullable=False)
     update_at: Mapped[datetime] = mapped_column(DateTime, nullable=False)
