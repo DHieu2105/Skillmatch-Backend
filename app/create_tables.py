@@ -71,6 +71,25 @@ def migrate_avatar_column():
 migrate_avatar_column()
 
 
+def migrate_company_columns():
+	columns = {column["name"] for column in inspect(engine).get_columns("companies")}
+	new_cols = [
+		("address", "VARCHAR"),
+		("google_map_url", "VARCHAR"),
+		("logo_url", "VARCHAR"),
+		("company_size", "VARCHAR"),
+		("industry", "VARCHAR"),
+		("benefits", "VARCHAR"),
+	]
+	with engine.begin() as connection:
+		for col_name, col_type in new_cols:
+			if col_name not in columns:
+				connection.execute(text(f"ALTER TABLE companies ADD COLUMN {col_name} {col_type}"))
+
+
+migrate_company_columns()
+
+
 def migrate_integrity_constraints():
 	user_columns = {column["name"] for column in inspect(engine).get_columns("companies")}
 

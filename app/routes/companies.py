@@ -46,6 +46,12 @@ def create_company(
         email=company_data.email,
         phone=company_data.phone,
         website=company_data.website,
+        address=company_data.address,
+        google_map_url=company_data.google_map_url,
+        logo_url=company_data.logo_url,
+        company_size=company_data.company_size,
+        industry=company_data.industry,
+        benefits=company_data.benefits,
         created_at=datetime.utcnow(),
         update_at=datetime.utcnow(),
     )
@@ -68,6 +74,7 @@ def get_company(
         raise HTTPException(status_code=404, detail="Company not found")
     return company
 
+
 @router.put("/{company_id}", response_model=CompanyResponse)
 def update_company(
     company_id: int,
@@ -86,9 +93,14 @@ def update_company(
     company.email = company_data.email
     company.phone = company_data.phone
     company.website = company_data.website
+    company.address = company_data.address
+    company.google_map_url = company_data.google_map_url
+    company.logo_url = company_data.logo_url
+    company.company_size = company_data.company_size
+    company.industry = company_data.industry
+    company.benefits = company_data.benefits
     company.update_at = datetime.utcnow()
 
     db.commit()
     db.refresh(company)
     return company
-
